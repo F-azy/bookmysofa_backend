@@ -8,15 +8,6 @@ const generateToken = (id) => {
   });
 };
 
-// Determine role: if email matches ADMIN_EMAIL env var, assign admin
-const determineRole = (email) => {
-  const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
-  if (adminEmail && email.toLowerCase().trim() === adminEmail) {
-    return 'admin';
-  }
-  return 'user';
-};
-
 // POST /api/auth/register
 const register = async (req, res) => {
   const { name, email, password } = req.body;
@@ -39,13 +30,12 @@ const register = async (req, res) => {
 
     const salt = await bcrypt.genSalt(12);
     const password_hash = await bcrypt.hash(password, salt);
-    const role = determineRole(email);
 
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3, 'user')
        RETURNING id, name, email, role, created_at`,
-      [name.trim(), email.toLowerCase().trim(), password_hash, role]
+      [name.trim(), email.toLowerCase().trim(), password_hash]
     );
 
     const user = result.rows[0];
@@ -91,14 +81,19 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
-    // Re-evaluate role on every login in case ADMIN_EMAIL changed
-    const currentRole = determineRole(user.email);
-    if (currentRole !== user.role) {
+    // If ADMIN_EMAIL is set and this email matches, ensure they have admin role.
+    // But never downgrade an existing admin — trust what is in the database.
+    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+    if (
+      adminEmail &&
+      user.email.toLowerCase().trim() === adminEmail &&
+      user.role !== 'admin'
+    ) {
       await pool.query('UPDATE users SET role = $1 WHERE id = $2', [
-        currentRole,
+        'admin',
         user.id,
       ]);
-      user.role = currentRole;
+      user.role = 'admin';
     }
 
     const token = generateToken(user.id);
