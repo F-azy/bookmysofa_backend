@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const initDb = require('./config/initDb');
 
 const authRoutes = require('./routes/authRoutes');
@@ -14,7 +15,7 @@ const PORT = process.env.PORT || 5000;
 // CORS
 app.use(
   cors({
-    origin: '*', // Restrict to your frontend domain in production
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
@@ -24,12 +25,26 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Routes
+// ── Serve landing page from /public ─────────────────────────────────────────
+// bookmysofa.shop and www.bookmysofa.shop hit port 80 → nginx → port 5000
+// Express serves index.html for the root and any unmatched non-API routes
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Explicit routes for Play Console URLs with anchor fallback
+app.get('/privacy', (req, res) => {
+  res.redirect('/#privacy');
+});
+app.get('/terms', (req, res) => {
+  res.redirect('/#terms');
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// WhatsApp config endpoint (re-uses uploadRoutes router)
+// WhatsApp config endpoint
 app.use('/api/config', uploadRoutes);
 
 // Health check
@@ -37,9 +52,14 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'BookMySofa API is running.' });
 });
 
-// 404
-app.use((req, res) => {
+// 404 — only for /api routes, everything else falls through to index.html
+app.use('/api/*', (req, res) => {
   res.status(404).json({ message: 'Route not found.' });
+});
+
+// Catch-all: serve index.html for any other GET (handles direct URL access)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Global error handler
