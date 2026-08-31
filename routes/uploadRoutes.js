@@ -38,6 +38,6 @@ const upload = multer({
 router.post('/', protect, adminOnly, upload.single('image'), uploadImage);
 
 // GET /api/config/whatsapp  (authenticated users)
-router.get('/whatsapp', protect, getWhatsAppConfig);
+router.get('/whatsapp', getWhatsAppConfig);
 
 module.exports = router;
