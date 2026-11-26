@@ -56,7 +56,6 @@ const register = async (req, res) => {
   }
 };
 
-// POST /api/auth/login
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -81,8 +80,6 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
-    // If ADMIN_EMAIL is set and this email matches, ensure they have admin role.
-    // But never downgrade an existing admin — trust what is in the database.
     const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
     if (
       adminEmail &&

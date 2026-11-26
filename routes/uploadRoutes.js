@@ -7,10 +7,6 @@ const { uploadImage, getWhatsAppConfig } = require('../controllers/uploadControl
 const { protect } = require('../middleware/authMiddleware');
 const { adminOnly } = require('../middleware/adminMiddleware');
 
-// Multer: store uploaded files temporarily in the OS temp dir
-// (os.tmpdir() resolves correctly on Windows, Mac, and Linux —
-// a hardcoded '/tmp' breaks on Windows since it resolves to C:\tmp,
-// which doesn't exist by default)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, os.tmpdir()),
   filename: (req, file, cb) => {
@@ -31,13 +27,11 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 }, 
 });
 
-// POST /api/upload  (admin only)
 router.post('/', protect, adminOnly, upload.single('image'), uploadImage);
 
-// GET /api/config/whatsapp  (authenticated users)
 router.get('/whatsapp', getWhatsAppConfig);
 
 module.exports = router;

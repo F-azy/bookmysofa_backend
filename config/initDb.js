@@ -19,7 +19,6 @@ const initDb = async () => {
     `);
 
     // Products table
-    // images stored as JSONB array of Cloudinary URLs
     await client.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
